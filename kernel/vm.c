@@ -211,7 +211,7 @@ uvminit(pagetable_t pagetable, uchar *src, uint sz)
     panic("inituvm: more than a page");
   mem = kalloc();
   memset(mem, 0, PGSIZE);
-  mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U);
+  mappages(pagetable, 0, PGSIZE, (uint64)mem, PTE_W|PTE_R|PTE_X|PTE_U|PTE_A);
   memmove(mem, src, sz);
 }
 
@@ -234,7 +234,7 @@ uvmalloc(pagetable_t pagetable, uint64 oldsz, uint64 newsz)
       return 0;
     }
     memset(mem, 0, PGSIZE);
-    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U) != 0){
+    if(mappages(pagetable, a, PGSIZE, (uint64)mem, PTE_W|PTE_X|PTE_R|PTE_U|PTE_A) != 0){
       kfree(mem);
       uvmdealloc(pagetable, a, oldsz);
       return 0;
@@ -279,6 +279,30 @@ freewalk(pagetable_t pagetable)
     }
   }
   kfree((void*)pagetable);
+}
+
+// prints out the page table
+void
+vmprint(pagetable_t pagetable, uint8 num)
+{
+  // base case
+  if (num < 0) 
+    return;
+  // entry point
+  if(num == 2) 
+    printf("page table %p\n", pagetable);
+  // recursion
+  for(int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0) {
+      uint64 child = PTE2PA(pte);
+      if(num == 2) printf(" ..%d: pte %p pa %p\n", i, pte, child);
+      if(num == 1) printf(" .. ..%d: pte %p pa %p\n", i, pte, child);
+      vmprint((pagetable_t)child, num-1);
+    } else if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) != 0) {
+      printf(" .. .. ..%d: pte %p pa %p\n", i, pte, PTE2PA(pte));
+    }
+  } 
 }
 
 // Free user memory pages,

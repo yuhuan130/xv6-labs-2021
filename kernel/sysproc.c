@@ -76,14 +76,32 @@ sys_sleep(void)
 }
 
 
-#ifdef LAB_PGTBL
+// #ifdef LAB_PGTBL
 int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  // load the arguments
+  uint64 base, mask;
+  int LEN;
+  // each bit and buffer
+  uint64 buf = 0;
+  argaddr(0, &base);   // pointer
+  argint(1, &LEN);     // integer
+  argaddr(2, &mask);   // pointer
+  // walk
+  for(int i = 0; i < LEN; i++, base += PGSIZE) {
+    pte_t *pte = walk(myproc()->pagetable, base, 0);
+    if(*pte & PTE_A) {
+      buf |= (1L << i);
+      *pte ^= PTE_A;
+    }
+  }
+  // memcopy
+  copyout(myproc()->pagetable, mask,(char *)&buf, sizeof(buf));
   return 0;
 }
-#endif
+// #endif
 
 uint64
 sys_kill(void)
