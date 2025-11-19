@@ -163,5 +163,6 @@ sys_sigreturn(void)
 {
   memmove(myproc()->trapframe, myproc()->alarm_tf, sizeof(struct trapframe));
   myproc()->in_handler = 0;
+  kfree(myproc()->alarm_tf);
   return 0;
 }
